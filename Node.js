@@ -1,14 +1,16 @@
 const express = require('express');
+const http = require('http');
 const WebSocket = require('ws');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 
 const app = express();
-const port = 8080;
-const wss = new WebSocket.Server({ port: 8081 });
+const server = http.createServer(app);
+const wss = new WebSocket.Server({ server });
 
 app.use(cors());
 app.use(bodyParser.text());
+app.use(bodyParser.json());
 
 // Store connected clients
 const clients = new Set();
@@ -18,10 +20,24 @@ wss.on('connection', (ws) => {
     console.log('New client connected');
     clients.add(ws);
 
+    // Send initial connection confirmation
+    ws.send(JSON.stringify({
+        type: 'connection',
+        status: 'connected'
+    }));
+
     ws.on('message', (message) => {
-        // Broadcast the message to all connected clients
-        const data = message.toString();
-        broadcastMessage(data, ws);
+        try {
+            console.log('Received:', message.toString());
+            // Broadcast to all clients
+            clients.forEach((client) => {
+                if (client.readyState === WebSocket.OPEN) {
+                    client.send(message.toString());
+                }
+            });
+        } catch (error) {
+            console.error('Error processing message:', error);
+        }
     });
 
     ws.on('close', () => {
@@ -35,23 +51,22 @@ wss.on('connection', (ws) => {
     });
 });
 
-// Broadcast message to all connected clients except the sender
-function broadcastMessage(message, sender) {
+// HTTP fallback endpoint
+app.post('/terminal', (req, res) => {
+    const data = req.body;
+    console.log('Received HTTP data:', data);
+    
+    // Broadcast to WebSocket clients
     clients.forEach((client) => {
-        if (client !== sender && client.readyState === WebSocket.OPEN) {
-            client.send(message);
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(typeof data === 'string' ? data : JSON.stringify(data));
         }
     });
-}
-
-// Regular HTTP endpoints (can be used as fallback)
-app.post('/terminal', (req, res) => {
-    const terminalData = req.body;
-    broadcastMessage(terminalData, null);
+    
     res.sendStatus(200);
 });
 
-app.listen(port, () => {
-    console.log(`HTTP Server running on http://localhost:${port}`);
-    console.log(`WebSocket Server running on ws://localhost:8081`);
+const PORT = process.env.PORT || 8080;
+server.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
 });
