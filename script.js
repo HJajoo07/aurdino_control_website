@@ -1,22 +1,28 @@
-const ws = new WebSocket('ws://localhost:8081'); // Use your server's WebSocket URL
+document.addEventListener('DOMContentLoaded', () => {
+    const dataList = document.getElementById('data-list');
 
-ws.onopen = () => {
-    console.log('WebSocket connection established.');
-};
+    // Function to fetch and display data
+    const fetchData = async () => {
+        try {
+            const response = await fetch('/data');
+            const result = await response.json();
 
-ws.onmessage = (event) => {
-    const message = event.data;
-    console.log('Message from server:', message);
+            // Clear the existing data
+            dataList.innerHTML = '';
 
-    // Display terminal data
-    const terminalDisplay = document.getElementById('terminalDisplay'); 
-    terminalDisplay.innerText += message + '\n'; // Append message to the display
-};
+            // Display each data item
+            result.data.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'data-item';
+                div.textContent = item;
+                dataList.appendChild(div);
+            });
+        } catch (error) {
+            console.error('Error fetching data:', error);
+        }
+    };
 
-ws.onclose = () => {
-    console.log('WebSocket connection closed.');
-};
-
-ws.onerror = (error) => {
-    console.error('WebSocket error:', error);
-};
+    // Fetch data initially and refresh every 5 seconds
+    fetchData();
+    setInterval(fetchData,5000);
+});

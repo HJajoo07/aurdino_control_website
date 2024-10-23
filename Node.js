@@ -1,72 +1,43 @@
+const https = require('https');
+const fs = require('fs');
 const express = require('express');
-const http = require('http');
-const WebSocket = require('ws');
 const bodyParser = require('body-parser');
-const cors = require('cors');
+const path = require('path');
 
 const app = express();
-const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
+const PORT = 443;
 
-app.use(cors());
-app.use(bodyParser.text());
+// Load certificates
+const privateKey = fs.readFileSync('key.pem', 'utf8');
+const certificate = fs.readFileSync('cert.pem', 'utf8');
+const credentials = { key: privateKey, cert: certificate };
+
+// Store data received from POST requests
+let receivedData = [];
+
+// Middleware
 app.use(bodyParser.json());
+app.use(express.static(path.join(__dirname, 'public')));
 
-// Store connected clients
-const clients = new Set();
-
-// WebSocket connection handler
-wss.on('connection', (ws) => {
-    console.log('New client connected');
-    clients.add(ws);
-
-    // Send initial connection confirmation
-    ws.send(JSON.stringify({
-        type: 'connection',
-        status: 'connected'
-    }));
-
-    ws.on('message', (message) => {
-        try {
-            console.log('Received:', message.toString());
-            // Broadcast to all clients
-            clients.forEach((client) => {
-                if (client.readyState === WebSocket.OPEN) {
-                    client.send(message.toString());
-                }
-            });
-        } catch (error) {
-            console.error('Error processing message:', error);
-        }
-    });
-
-    ws.on('close', () => {
-        console.log('Client disconnected');
-        clients.delete(ws);
-    });
-
-    ws.on('error', (error) => {
-        console.error('WebSocket error:', error);
-        clients.delete(ws);
-    });
+// Endpoint to receive data from Android app
+app.post('/data', (req, res) => {
+    const { data } = req.body;
+    if (data) {
+        receivedData.push(data);
+        console.log('Data received:', data);
+        res.status(200).send('Data received successfully');
+    } else {
+        res.status(400).send('No data received');
+    }
 });
 
-// HTTP fallback endpoint
-app.post('/terminal', (req, res) => {
-    const data = req.body;
-    console.log('Received HTTP data:', data);
-    
-    // Broadcast to WebSocket clients
-    clients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN) {
-            client.send(typeof data === 'string' ? data : JSON.stringify(data));
-        }
-    });
-    
-    res.sendStatus(200);
+// Endpoint to retrieve data for the frontend
+app.get('/data', (req, res) => {
+    res.json({ data: receivedData });
 });
 
-const PORT = process.env.PORT || 8080;
-server.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+// Start the HTTPS server
+const httpsServer = https.createServer(credentials, app);
+httpsServer.listen(PORT, () => {
+    console.log(`Server running at https://localhost:${PORT}`);
 });

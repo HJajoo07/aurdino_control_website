@@ -3,19 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aurdino Control Terminal</title>
+    <title>Bluetooth Data Notepad</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <header>
-        <h1>Aurdino Control Terminal</h1>
-    </header>
-    <main>
-        <section id="terminal">
-            <h2>Terminal Data</h2>
-            <div id="terminalDisplay" style="white-space: pre-wrap; border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: scroll;"></div>
-        </section>
-    </main>
+    <div class="container">
+        <h1>Received Bluetooth Data</h1>
+        <div id="data-list" class="data-list">
+            <!-- Data from server will be displayed here -->
+        </div>
+    </div>
     <script src="script.js"></script>
 </body>
 </html>
