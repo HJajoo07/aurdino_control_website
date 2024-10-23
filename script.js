@@ -1,21 +1,22 @@
-const dataList = document.getElementById('dataList');
+const ws = new WebSocket('ws://localhost:8081'); // Use your server's WebSocket URL
 
-// Establish WebSocket connection to server
-const socket = new WebSocket('ws://localhost:8081');
-
-// Handle incoming messages
-socket.onmessage = function (event) {
-    const newItem = document.createElement('li');
-    newItem.textContent = event.data; // Data sent from the server
-    dataList.appendChild(newItem);
+ws.onopen = () => {
+    console.log('WebSocket connection established.');
 };
 
-// Handle WebSocket errors
-socket.onerror = function (error) {
-    console.log('WebSocket Error: ' + error);
+ws.onmessage = (event) => {
+    const message = event.data;
+    console.log('Message from server:', message);
+
+    // Display terminal data
+    const terminalDisplay = document.getElementById('terminalDisplay'); 
+    terminalDisplay.innerText += message + '\n'; // Append message to the display
 };
 
-// Handle WebSocket connection close
-socket.onclose = function () {
-    console.log('WebSocket connection closed');
+ws.onclose = () => {
+    console.log('WebSocket connection closed.');
+};
+
+ws.onerror = (error) => {
+    console.error('WebSocket error:', error);
 };
