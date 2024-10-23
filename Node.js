@@ -1,25 +1,19 @@
-const https = require('https');
-const fs = require('fs');
 const express = require('express');
 const bodyParser = require('body-parser');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
-const PORT = 443;
+const PORT = 3000;
 
-// Load certificates
-const privateKey = fs.readFileSync('key.pem', 'utf8');
-const certificate = fs.readFileSync('cert.pem', 'utf8');
-const credentials = { key: privateKey, cert: certificate };
-
-// Store data received from POST requests
+// Store received data in memory (you can use a database for persistent storage)
 let receivedData = [];
 
 // Middleware
 app.use(bodyParser.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'))); // Serve static files (HTML, CSS, JS)
 
-// Endpoint to receive data from Android app
+// Endpoint to receive data from the Android app
 app.post('/data', (req, res) => {
     const { data } = req.body;
     if (data) {
@@ -36,8 +30,7 @@ app.get('/data', (req, res) => {
     res.json({ data: receivedData });
 });
 
-// Start the HTTPS server
-const httpsServer = https.createServer(credentials, app);
-httpsServer.listen(PORT, () => {
-    console.log(`Server running at https://localhost:${PORT}`);
+// Start the server
+app.listen(PORT, () => {
+    console.log(`Server running at http://localhost:${PORT}`);
 });
